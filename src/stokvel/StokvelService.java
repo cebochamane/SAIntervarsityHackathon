@@ -37,6 +37,19 @@ public class StokvelService {
 
     }
 
+    public Member addMember(String groupId, String memberName) {
+        Group group = getGroupOrThrow(groupId);
+
+        Member member = new Member();
+        member.id = generateId();
+        member.name = memberName;
+        member.treasuryWallet = new Wallet();      // member's personal wallet
+
+        if (group.members == null) group.members = new ArrayList<>();
+        group.members.add(member);
+        return member;
+    }
+
     public Group createGroup(String name, float monthlyContribution) {
         Group group = new Group();
         group.id = generateId();
