@@ -1,8 +1,9 @@
 public class LedgerEntry {
-    String type;
-    String memberName;
-    float amount;
-    String timeString;
-    String transactionHash;
+    public String type;
+    public String memberName;
+    public float amount;
+    public long timestamp;
+    public String timeString;
+    public String transactionHash;
 
 }
