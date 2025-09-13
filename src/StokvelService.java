@@ -5,6 +5,38 @@ public class StokvelService {
     private final Map<String, Group> groupsById = new HashMap<>();
     public final List<Group> groups = new ArrayList<>();
 
+    public void showLedger(String groupId) {
+        Group group = getGroupOrThrow(groupId);
+        System.out.println("== Ledger" + group.name + " ==");
+
+        List<LedgerEntry> sorted = new ArrayList<>(group.ledger);
+        Collections.sort(sorted, new Comparator<LedgerEntry>() {
+            @Override
+            public int compare(LedgerEntry ledger1, LedgerEntry ledger2) {
+                return Long.compare(ledger1.timestamp, ledger2.timestamp);
+            }
+
+        });
+
+        for (LedgerEntry ledger : sorted) {
+            String amount = stripTrailingZeros(ledger.amount);
+            String hash = shortHash(ledger.transactionHash);
+
+            if ("contribution".equalsIgnoreCase(ledger.type)) {
+                System.out.println(ledger.timeString + "  " + ledger.memberName + " contributed R" + amount + "  (tx "
+                        + hash + ")");
+            } else if ("payout".equalsIgnoreCase(ledger.type)) {
+                System.out.println(ledger.timeString + " " + ledger.memberName + " received payout of R " + amount + " "
+                        + "  (tx " + hash + ")");
+            } else {
+                System.out.println(ledger.timeString + " " + ledger.memberName + " " + ledger.type + " R" + amount + " "
+                        + "  (tx " + hash + ")");
+            }
+
+        }
+
+    }
+
     public Group createGroup(String name, float monthlyContribution) {
         Group group = new Group();
         group.id = generateId();
@@ -26,7 +58,7 @@ public class StokvelService {
         Group group = getGroupOrThrow(groupId);
         Member member = getMemberOrThrow(group, memberId);
 
-        Transaction t = group.wallet.sendFunds(member.wallet.publicKey, amount);
+        Transaction t = group.wallet.sendFunds(member.treasuryWallet.publicKey, amount);
         String txHash = resolveTxHash(t);
 
         LedgerEntry entry = new LedgerEntry();
@@ -45,7 +77,7 @@ public class StokvelService {
         Group group = getGroupOrThrow(groupId);
         Member member = getMemberOrThrow(group, memberId);
 
-        Transaction t = group.wallet.sendFunds(member.wallet.publicKey, amount);
+        Transaction t = group.wallet.sendFunds(member.treasuryWallet.publicKey, amount);
         String txHash = resolveTxHash(t);
 
         LedgerEntry entry = new LedgerEntry();
