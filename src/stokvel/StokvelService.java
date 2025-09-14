@@ -5,6 +5,14 @@ public class StokvelService {
     private final Map<String, Group> groupsById = new HashMap<>();
     public final List<Group> groups = new ArrayList<>();
 
+    private static final int TRUST_ON_TIME = 5;
+    private static final int TRUST_FAIL = -10;
+    private static final int STREAK_BADGE_THRESHOLD = 3;
+
+    public String currentMonthKey() {
+        return new SimpleDateFormat("yyyy-MM").format(new Date());
+    }
+
     public void showLedger(String groupId) {
         Group group = getGroupOrThrow(groupId);
         System.out.println("== Ledger" + group.name + " ==");
@@ -75,6 +83,12 @@ public class StokvelService {
         Transaction t = group.wallet.sendFunds(member.treasuryWallet.publicKey, amount);
         String txHash = resolveTxHash(t);
 
+        if (t == null || "-".equals(txHash)) {
+            member.trustScore += TRUST_FAIL;
+            return null; // basically doesnt add to the ledger and previous line penalises failed
+                         // payments
+
+        }
         LedgerEntry entry = new LedgerEntry();
         entry.type = "contribution";
         entry.memberName = member.name;
