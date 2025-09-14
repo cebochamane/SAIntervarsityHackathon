@@ -1,5 +1,6 @@
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class StokvelService {
     private final Map<String, Group> groupsById = new HashMap<>();
@@ -43,6 +44,42 @@ public class StokvelService {
 
         }
 
+    }
+
+    public void awardBadge(Member member, String badge) {
+        if (!member.badges.contains(badge))
+            member.badges.add(badge);
+    }
+
+    private boolean allMembersContributedThisMonth(Group group, String monthKey) {
+        if (group.members == null || group.members.isEmpty())
+            return false;
+        for (Member mem : group.members) {
+            if (!monthKey.equals(mem.lastContribution))
+                return false;
+        }
+        return true;
+    }
+
+    // ensures no duplication
+    private void awardGroupBadgeOnce(Group group, String label) {
+        boolean exists = false;
+        for (LedgerEntry led : group.ledger) {
+            if ("milestone".equalsIgnoreCase(led.type) && label.equals(led.memberName)) {
+                exists = true;
+                break;
+            }
+            if (!exists) {
+                LedgerEntry le = new LedgerEntry();
+                le.type = "milestone";
+                le.memberName = label;
+                le.amount = 0f;
+                le.timestamp = System.currentTimeMillis();
+                le.timeString = formatTs(le.timestamp);
+                le.transactionHash = "-";
+                group.ledger.add(le);
+            }
+        }
     }
 
     public Member addMember(String groupId, String memberName) {
@@ -97,6 +134,20 @@ public class StokvelService {
         entry.transactionHash = txHash;
 
         group.ledger.add(entry);
+        String month = currentMonthKey();
+        if (!month.equals(member.lastContribution)) {
+            member.streak += 1;
+            member.lastContribution = month;
+            member.trustScore += TRUST_ON_TIME;
+
+            if (member.streak > 0 && member.streak % STREAK_BADGE_THRESHOLD == 0) {
+                awardBadge(member, "Consistent Saver x " + member.streak);
+
+            }
+        }
+        if (allMembersContributedThisMonth(group, month)) {
+            awardBadge(member, "All Contributed (" + month + " )");
+        }
         return entry;
 
     }
@@ -175,4 +226,24 @@ public class StokvelService {
         }
         return "-";
     }
+
+    public void showLeaderboard(String groupId) {
+        Group group = getGroupOrThrow(groupId);
+        System.out.println("\n== Leaderboard: " + group.name + " ==");
+        List<Member> sorted = new ArrayList<>(group.members);
+        sorted.sort(new java.util.Comparator<Member>() {
+            @Override
+            public int compare(Member a, Member b) {
+                return Integer.compare(b.trustScore, a.trustScore);
+            }
+        });
+
+        for (Member mem : sorted) {
+            System.out.println(
+                    mem.name + "  | Trust " + mem.trustScore +
+                            " | Streak " + mem.streak +
+                            " | Badges " + (mem.badges.isEmpty() ? "-" : String.join(", ", mem.badges)));
+        }
+    }
+
 }
