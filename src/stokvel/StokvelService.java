@@ -43,9 +43,10 @@ public class StokvelService {
         Member member = new Member();
         member.id = generateId();
         member.name = memberName;
-        member.treasuryWallet = new Wallet();      // member's personal wallet
+        member.treasuryWallet = new Wallet(); // member's personal wallet
 
-        if (group.members == null) group.members = new ArrayList<>();
+        if (group.members == null)
+            group.members = new ArrayList<>();
         group.members.add(member);
         return member;
     }
